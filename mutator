@@ -12,6 +12,7 @@ from random import choice, choices, gauss, randrange, shuffle
 from signal import signal, SIGPIPE, SIG_DFL
 from sys import stdin, stdout
 from typing import Iterator, List, NamedTuple, TextIO
+import numpy as np
 
 signal(SIGPIPE, SIG_DFL)  # Gracefully handle downstream PIPE closure
 
@@ -224,12 +225,12 @@ if __name__ == '__main__':
                 logger.info('Mutating {}'.format(record.seqid))
                 for c in args.cycles:
                     for r in range(1, args.replicates+1):
-                        n_sub = round(gauss(args.substitution, args.sub_sd) *
-                            c * len(record))
-                        n_ins = round(gauss(args.insertion, args.ins_sd) *
-                            c * len(record)) if args.insertion else 0
-                        n_del = round(gauss(args.deletion, args.del_sd) *
-                            c * len(record)) if args.deletion else 0
+                        expected_subs = args.substitution * c * len(record)
+                        n_sub = np.random.poisson(expected_subs)
+                        expected_ins = args.insertion * c * len(record)
+                        n_ins = np.random.poisson(expected_ins) if args.insertion else 0
+                        expected_del = args.deletion * c * len(record)
+                        n_del = np.random.poisson(expected_del) if args.deletion else 0
                         _record = SeqRecord(
                             f'{record.seqid} cycle:{c} replicate:{r} n_sub:{n_sub} n_ins:{n_ins} n_del:{n_del}',
                             mutate(record.seq, n_sub, n_ins, n_del, args.indel_length))
